@@ -291,6 +291,93 @@ ALTER TABLE ONLY public.staffings
 
 
 --
+
+
+--
+-- 区域协调（在初始快照之上追加）
+--
+
+CREATE TABLE public.regions (
+    id integer NOT NULL,
+    name character varying(60) NOT NULL,
+    note text,
+    created character varying(40)
+);
+
+CREATE SEQUENCE public.regions_id_seq AS integer START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.regions_id_seq OWNED BY public.regions.id;
+ALTER TABLE ONLY public.regions ALTER COLUMN id SET DEFAULT nextval('public.regions_id_seq'::regclass);
+ALTER TABLE ONLY public.regions ADD CONSTRAINT regions_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.regions ADD CONSTRAINT regions_name_key UNIQUE (name);
+
+CREATE TABLE public.region_members (
+    id integer NOT NULL,
+    region_id integer NOT NULL,
+    branch character varying(30) NOT NULL
+);
+
+CREATE SEQUENCE public.region_members_id_seq AS integer START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.region_members_id_seq OWNED BY public.region_members.id;
+ALTER TABLE ONLY public.region_members ALTER COLUMN id SET DEFAULT nextval('public.region_members_id_seq'::regclass);
+ALTER TABLE ONLY public.region_members ADD CONSTRAINT region_members_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.region_members ADD CONSTRAINT uq_region_branch UNIQUE (region_id, branch);
+ALTER TABLE ONLY public.region_members ADD CONSTRAINT region_members_region_id_fkey FOREIGN KEY (region_id) REFERENCES public.regions(id);
+
+CREATE TABLE public.region_runs (
+    id integer NOT NULL,
+    region_id integer NOT NULL,
+    region_name character varying(60),
+    name character varying(100),
+    week character varying(10) NOT NULL,
+    version integer NOT NULL,
+    backtest_days integer,
+    alpha double precision,
+    beta double precision,
+    capacity integer,
+    state character varying(20),
+    result json,
+    error text,
+    request_key character varying(80),
+    created character varying(40),
+    published_at character varying(40),
+    superseded_by integer
+);
+
+CREATE SEQUENCE public.region_runs_id_seq AS integer START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.region_runs_id_seq OWNED BY public.region_runs.id;
+ALTER TABLE ONLY public.region_runs ALTER COLUMN id SET DEFAULT nextval('public.region_runs_id_seq'::regclass);
+ALTER TABLE ONLY public.region_runs ADD CONSTRAINT region_runs_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.region_runs ADD CONSTRAINT uq_region_week_version UNIQUE (region_id, week, version);
+ALTER TABLE ONLY public.region_runs ADD CONSTRAINT uq_region_request_key UNIQUE (region_id, request_key);
+ALTER TABLE ONLY public.region_runs ADD CONSTRAINT region_runs_region_id_fkey FOREIGN KEY (region_id) REFERENCES public.regions(id);
+
+CREATE TABLE public.region_run_members (
+    id integer NOT NULL,
+    region_run_id integer NOT NULL,
+    branch character varying(30) NOT NULL,
+    state character varying(20),
+    result json,
+    error text
+);
+
+CREATE SEQUENCE public.region_run_members_id_seq AS integer START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.region_run_members_id_seq OWNED BY public.region_run_members.id;
+ALTER TABLE ONLY public.region_run_members ALTER COLUMN id SET DEFAULT nextval('public.region_run_members_id_seq'::regclass);
+ALTER TABLE ONLY public.region_run_members ADD CONSTRAINT region_run_members_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.region_run_members ADD CONSTRAINT uq_region_run_branch UNIQUE (region_run_id, branch);
+ALTER TABLE ONLY public.region_run_members ADD CONSTRAINT region_run_members_region_run_id_fkey FOREIGN KEY (region_run_id) REFERENCES public.region_runs(id);
+
+ALTER TABLE public.staffings ADD COLUMN region_id integer;
+ALTER TABLE public.staffings ADD COLUMN region_run_id integer;
+ALTER TABLE public.staffings ADD COLUMN branch character varying(30);
+ALTER TABLE public.staffings ADD COLUMN week character varying(10);
+ALTER TABLE public.staffings ADD COLUMN basis json;
+ALTER TABLE ONLY public.staffings ADD CONSTRAINT staffings_region_id_fkey FOREIGN KEY (region_id) REFERENCES public.regions(id);
+ALTER TABLE ONLY public.staffings ADD CONSTRAINT staffings_region_run_id_fkey FOREIGN KEY (region_run_id) REFERENCES public.region_runs(id);
+
+-- 区域每网点每周只保留一行排班；单点排班 region_id 为 NULL 时不受限
+ALTER TABLE ONLY public.staffings ADD CONSTRAINT uq_region_week_branch UNIQUE (region_id, week, branch);
+
 -- PostgreSQL database dump complete
 --
 

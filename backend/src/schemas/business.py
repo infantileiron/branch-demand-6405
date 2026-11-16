@@ -9,3 +9,9 @@ class ForecastInput(BaseModel):
  name:str=Field(min_length=2,max_length=100);branch:Branch;backtest_days:int=Field(default=14,ge=7,le=21);alpha:float=Field(default=.6,ge=.01,le=.99,allow_inf_nan=False);beta:float=Field(default=.2,ge=.01,le=.99,allow_inf_nan=False)
 class StaffingInput(BaseModel):
  run_id:int=Field(gt=0);capacity:int=Field(ge=1,le=1000);model:Literal['seasonal_naive','holt'];note:str=Field(min_length=8,max_length=2000)
+class RegionInput(BaseModel):
+ name:str=Field(min_length=2,max_length=60);note:str=Field(default='',max_length=1000);members:list[Branch]=Field(min_length=2,max_length=8)
+class RegionMembersInput(BaseModel):
+ members:list[Branch]=Field(min_length=2,max_length=8)
+class RegionRunInput(BaseModel):
+ name:str=Field(default='',max_length=100);backtest_days:int=Field(default=14,ge=7,le=21);alpha:float=Field(default=.6,ge=.01,le=.99,allow_inf_nan=False);beta:float=Field(default=.2,ge=.01,le=.99,allow_inf_nan=False);capacity:int=Field(default=12,ge=1,le=1000);request_key:str=Field(default='',max_length=80)
